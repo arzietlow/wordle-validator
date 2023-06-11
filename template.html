@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Link to mobile.css for devices with screens smaller than 600px -->
+  <link rel="stylesheet" type="text/css" href="mobile.css" media="(max-width: 600px)">
+  <!-- Link to desktop.css for devices with screens larger than 601px -->
+  <link rel="stylesheet" type="text/css" href="desktop.css" media="(min-width: 601px)">
+
+  <!-- Link to slider.css for dark mode and slider CSS -->
+  <link rel="stylesheet" type="text/css" href="slider.css">
+  <!-- Link to animations.css for animations -->
+  <link rel="stylesheet" type="text/css" href="animations.css">
+
+  <style>
+    button[type="submit"] {
+      margin-left: 0.2rem;
+      padding: 0.5rem 1rem;
+      font-size: 1.2rem;
+      border-radius: 0.25rem;
+      border: none;
+      background-color: input_button_background_color;
+      color: #fff;
+      box-shadow: 0 0 0.25rem rgba(0, 0, 0, 0.2);
+    }
+  </style>
+  <title>Wordle First Guess Validator</title>
+</head>
+
+<body>
+  <h1 id="title">Wordle First Guess Validator</h1>
+  <form>
+    <input type="text" id="input" placeholder="Enter your guess" maxlength="5" pattern="[a-zA-Z]+" required />
+    <button type="submit">Check</button>
+  </form>
+  <audio id="yes-sound" volume="0.30" playbackRate="0.95">
+    <source src="yes.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="no-sound" src="https://noproblo.dayjo.org/ZeldaSounds/OOT/OOT_Error.wav"></audio>
+  <div id="response"></div>
+  <div id="about">
+    <p>
+      This app helps you ensure your guess hasn't already been used in a
+      previous NYT Wordle puzzle, maximizing your chances at a first-guess
+      win. <br />
+      <span>Yes, it's technically cheating!</span>
+    </p>
+  </div>
+  <footer>
+    <div>
+      Solutions added automatically. Last updated April 11 2023 @ 7:45pm CST<br>
+      <span>© 2023 Andy Z. - Special thanks to ChatGPT</span>
+    </div>
+  </footer>
+  <div class="slider">
+    <input type="checkbox" id="dark-mode-toggle" />
+    <label for="dark-mode-toggle"></label>
+  </div>
+  <script>
+    /// Title animation functions ///
+    const COLOR_FUNCTIONS = [
+      { func: smoothColorizeTitle, args: [] },
+      { func: colorizeTitleWave, args: [] },
+      // { func: colorizeTitle, args: [2000] }, // Uniform delay
+      { func: colorizeTitle, args: [Math.floor(Math.random() * 3001) + 500] }, //"Blinking" - uncoordinated color changing
+      { func: glowTitleBoxed, args: [2000] },
+      { func: glowTitleBoxed, args: [Math.floor(Math.random() * 3001) + 500] },
+      { func: glowTitle, args: [2000] },
+      { func: glowTitle, args: [Math.floor(Math.random() * 3001) + 500] }
+    ];
+    colorizeTitleRandomly();
+    const form = document.querySelector("form");
+    const input = document.querySelector("#input");
+    const response = document.querySelector("#response");
+    const yesSound = document.querySelector("#yes-sound");
+    const noSound = document.querySelector("#no-sound");
+
+    // Define the wordle_history constant
+    const wordle_history = ["WORD1", "WORD2", "WORD3",];
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const guess = input.value.toUpperCase();
+      if (guess === "HBDCO") {
+        sirCharles();
+        return;
+      }
+
+      // Check if guess is exactly 5 characters
+      if (guess.length !== 5) {
+        noSound.play();
+        response.textContent = "Guess must be 5 letters";
+        return;
+      }
+
+      // Find the index of the guess in the wordle_history list
+      const index = wordle_history.findIndex((word) => word === guess);
+      if (index !== -1) {
+        // Calculate the date based on the index
+        noSound.play();
+        const today = new Date();
+        const daysOffset = 1 + index;
+        const targetDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysOffset);
+        const targetDateString = targetDate.toLocaleDateString();
+        response.textContent = `Your word "${guess}" was the solution on ${targetDateString}. Guess again!`;
+      } else {
+        yesSound.play();
+        response.textContent = `Your word "${guess}" has not been a solution yet! Good luck!`;
+      }
+      return;
+    });
+
+    // Empty function for default color RGB wave animation
+    function colorizeTitleWave() {
+      // This function does nothing, since it's the default animation
+    }
+
+    /// Master function for choosing title color pattern randomly
+    function colorizeTitleRandomly() {
+      const randomIndex = Math.floor(Math.random() * COLOR_FUNCTIONS.length);
+      const randomFunction = COLOR_FUNCTIONS[randomIndex];
+      console.log(`${randomFunction.func.name}`);
+      randomFunction.func(...randomFunction.args);
+    }
+
+    // Transitions each char between its own random colors using a smooth animation
+    function smoothColorizeTitle() {
+      const title = document.querySelector('h1');
+      title.removeAttribute('id');
+      const chars = title.textContent.split('');
+      const container = document.createElement('div');
+
+      // Copy the styles from the original h1 element to the new container element
+      container.style.fontSize = getComputedStyle(title).fontSize;
+      container.style.fontWeight = getComputedStyle(title).fontWeight;
+      container.style.fontFamily = getComputedStyle(title).fontFamily;
+      container.style.textAlign = getComputedStyle(title).textAlign;
+      container.style.marginTop = getComputedStyle(title).marginTop;
+      container.style.marginBottom = getComputedStyle(title).marginBottom;
+      container.style.textTransform = getComputedStyle(title).textTransform;
+      container.style.letterSpacing = getComputedStyle(title).letterSpacing;
+      container.style.textShadow = getComputedStyle(title).textShadow;
+
+      chars.forEach(char => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        container.appendChild(span);
+      });
+
+      title.parentNode.replaceChild(container, title);
+
+      setInterval(() => {
+        const spans = container.querySelectorAll('span');
+        spans.forEach(span => {
+          const r1 = Math.floor(Math.random() * 256);
+          const g1 = Math.floor(Math.random() * 256);
+          const b1 = Math.floor(Math.random() * 256);
+          const r2 = Math.floor(Math.random() * 256);
+          const g2 = Math.floor(Math.random() * 256);
+          const b2 = Math.floor(Math.random() * 256);
+          const duration = Math.floor(Math.random() * 3001) + 500; // random duration between .5 and 3.5 seconds
+          span.style.transition = `color ${duration}ms linear`;
+          span.style.color = `rgb(${r1}, ${g1}, ${b1})`;
+          setTimeout(() => {
+            span.style.color = `rgb(${r2}, ${g2}, ${b2})`;
+          }, duration);
+        });
+      }, 2000);
+    }
+
+    // Transitions each char between random colors, timing determined by delayFunc
+    function colorizeTitle(delayFunc) {
+      console.log(`delayFunc used: ${delayFunc}`);
+      const title = document.querySelector('h1');
+      title.removeAttribute('id');
+      const chars = title.textContent.split('');
+      const container = document.createElement('div');
+
+      // Copy the styles from the original h1 element to the new container element
+      container.style.fontSize = getComputedStyle(title).fontSize;
+      container.style.fontWeight = getComputedStyle(title).fontWeight;
+      container.style.fontFamily = getComputedStyle(title).fontFamily;
+      container.style.textAlign = getComputedStyle(title).textAlign;
+      container.style.marginTop = getComputedStyle(title).marginTop;
+      container.style.marginBottom = getComputedStyle(title).marginBottom;
+      container.style.textTransform = getComputedStyle(title).textTransform;
+      container.style.letterSpacing = getComputedStyle(title).letterSpacing;
+      container.style.textShadow = getComputedStyle(title).textShadow;
+
+      chars.forEach(char => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        container.appendChild(span);
+      });
+
+      title.parentNode.replaceChild(container, title);
+
+      setInterval(() => {
+        const spans = container.querySelectorAll('span');
+        spans.forEach((span, index) => {
+          const r = Math.floor(Math.random() * 256);
+          const g = Math.floor(Math.random() * 256);
+          const b = Math.floor(Math.random() * 256);
+          span.style.color = `rgb(${r}, ${g}, ${b})`;
+          const delay = typeof delayFunc === 'function' ? delayFunc() : delayFunc;
+          setTimeout(() => {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+            span.style.color = `rgb(${r}, ${g}, ${b})`;
+          }, index * delay);
+        });
+      }, 2000);
+    }
+
+    // Same as smoothColorizeTitle but with colored box around chars
+    function glowTitleBoxed(delayFunc) {
+      console.log(`delayFunc used: ${delayFunc}`);
+      const title = document.querySelector('h1');
+      title.removeAttribute('id');
+      const chars = title.textContent.split('');
+      const container = document.createElement('div');
+      container.classList.add('title-container');
+
+      // Split the characters into individual words
+      const words = title.textContent.split(' ');
+
+      // Loop through each word and create a separate container for it
+      words.forEach((word, i) => {
+        const wordContainer = document.createElement('div');
+        wordContainer.style.display = 'inline-block';
+        wordContainer.style.marginRight = '1em';
+        if (i === words.length - 1) {
+          wordContainer.style.marginRight = '0';
+        }
+        wordContainer.style.whiteSpace = 'nowrap';
+        wordContainer.style.marginTop = '0.5em';
+        wordContainer.style.marginBottom = '0.5em';
+
+        // Loop through each character in the word and create a span for it
+        word.split('').forEach(char => {
+          const span = document.createElement('span');
+          if (char === ' ') {
+            span.innerHTML = '&nbsp;';
+            span.style.padding = '0.2em';
+          } else {
+            span.textContent = char;
+            span.classList.add('letter'); // add the "letter" class
+          }
+          wordContainer.appendChild(span);
+        });
+
+        container.appendChild(wordContainer);
+      });
+
+      title.parentNode.replaceChild(container, title);
+
+      setInterval(() => {
+        const spans = container.querySelectorAll('span');
+        spans.forEach(span => {
+          const r1 = Math.floor(Math.random() * 256);
+          const g1 = Math.floor(Math.random() * 256);
+          const b1 = Math.floor(Math.random() * 256);
+          const r2 = Math.floor(Math.random() * 256);
+          const g2 = Math.floor(Math.random() * 256);
+          const b2 = Math.floor(Math.random() * 256);
+          const delay = typeof delayFunc === 'function' ? delayFunc() : delayFunc;
+          span.style.transition = `color ${delay}ms linear, outline-color ${delay}ms linear`;
+          span.style.color = `rgb(${r1}, ${g1}, ${b1})`;
+          span.style.outlineColor = `rgb(${r1 - 30}, ${g1 - 30}, ${b1 - 30})`;
+          setTimeout(() => {
+            span.style.color = `rgb(${r2}, ${g2}, ${b2})`;
+            span.style.outlineColor = `rgb(${r2 - 30}, ${g2 - 30}, ${b2 - 30})`;
+          }, delay);
+        });
+      }, 2000);
+    }
+
+    // Glow-y outline applied for random intervals on random characters (adds colored textShadow param)
+    function glowTitle(delayFunc) {
+      console.log(`delayFunc used: ${delayFunc}`);
+      const title = document.querySelector('h1');
+      title.removeAttribute('id');
+      const words = title.textContent.split(' ');
+      const container = document.createElement('div');
+      container.classList.add('title-container');
+
+      // Copy the styles from the original h1 element to the new container element
+      container.style.fontSize = getComputedStyle(title).fontSize;
+      container.style.fontWeight = getComputedStyle(title).fontWeight;
+      container.style.fontFamily = getComputedStyle(title).fontFamily;
+      container.style.textAlign = getComputedStyle(title).textAlign;
+      container.style.marginTop = getComputedStyle(title).marginTop;
+      container.style.marginBottom = getComputedStyle(title).marginBottom;
+      container.style.textTransform = getComputedStyle(title).textTransform;
+      container.style.letterSpacing = getComputedStyle(title).letterSpacing;
+      container.style.textShadow = getComputedStyle(title).textShadow;
+
+      // Add the new CSS to center the container
+      container.style.display = 'flex';
+      container.style.justifyContent = 'center';
+      container.style.flexWrap = 'wrap';
+
+      words.forEach((word, i) => {
+        const wordContainer = document.createElement('div');
+        wordContainer.style.display = 'inline-block';
+        wordContainer.style.marginRight = '1em';
+        if (i === words.length - 1) {
+          wordContainer.style.marginRight = '0';
+        }
+        wordContainer.style.whiteSpace = 'nowrap';
+        wordContainer.style.marginTop = '0.5em';
+        wordContainer.style.marginBottom = '0.5em';
+        container.appendChild(wordContainer);
+
+        const chars = word.split('');
+        chars.forEach(char => {
+          const span = document.createElement('span');
+          if (char === ' ') {
+            span.innerHTML = '&nbsp;';
+            span.style.padding = '0.2em';
+          } else {
+            span.textContent = char;
+            span.classList.add('letter'); // add the "letter" class
+          }
+          wordContainer.appendChild(span);
+        });
+      });
+
+      title.parentNode.replaceChild(container, title);
+
+      setInterval(() => {
+        const spans = container.querySelectorAll('span');
+        spans.forEach(span => {
+          const r1 = Math.floor(Math.random() * 256);
+          const g1 = Math.floor(Math.random() * 256);
+          const b1 = Math.floor(Math.random() * 256);
+          const r2 = Math.floor(Math.random() * 256);
+          const g2 = Math.floor(Math.random() * 256);
+          const b2 = Math.floor(Math.random() * 256);
+          const delay = typeof delayFunc === 'function' ? delayFunc() : delayFunc;
+          span.style.transition = `color ${delay}ms linear, text-shadow ${delay}ms linear`;
+          span.style.color = `rgb(${r1}, ${g1}, ${b1})`;
+
+          // Get the RGB values of the current color and calculate the outline color
+          const currentColor = `rgb(${r1}, ${g1}, ${b1})`;
+          const nextColor = `rgb(${r2}, ${g2}, ${b2})`;
+          const outlineColor = calculateOutlineColor(currentColor);
+          const nextOutlineColor = calculateOutlineColor(nextColor);
+
+          span.style.textShadow = `0 0 5px ${outlineColor}`;
+
+          span.style.color = `rgb(${r2}, ${g2}, ${b2})`;
+          span.style.textShadow = `0 0 5px ${nextOutlineColor}`;
+        });
+      }, 2000);
+    }
+
+    function sirCharles() {
+      alert("HAPPY BIRTHDAY, CHARLES!");
+      window.open("https://www.youtube.com/watch?v=XP4-BZttiQ8", "_blank");
+    }
+
+
+
+    // Helper function to calculate the outline color based on the current color
+    function calculateOutlineColor(color) {
+      const rgbValues = color.substring(4, color.length - 1).split(',');
+      const r = parseInt(rgbValues[0]);
+      const g = parseInt(rgbValues[1]);
+      const b = parseInt(rgbValues[2]);
+      const outlineR = (r + 128) % 256;
+      const outlineG = (g + 128) % 256;
+      const outlineB = (b + 128) % 256;
+      return `rgb(${outlineR}, ${outlineG}, ${outlineB})`;
+    }
+
+
+    // Dark Mode slider - cookies
+    const toggleSwitch = document.querySelector('#dark-mode-toggle');
+    const currentTheme = localStorage.getItem('theme');
+    if (currentTheme) {
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      if (currentTheme === 'dark') {
+        toggleSwitch.checked = true;
+        document.body.classList.add('dark');
+      }
+    } else {
+      // Set default theme
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('theme', 'light');
+    }
+
+    // Dark Mode slider - function
+    function switchTheme(e) {
+      console.log()
+      if (e.target.checked) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        document.body.classList.add('dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+        document.body.classList.remove('dark');
+      }
+    }
+
+    toggleSwitch.addEventListener('change', switchTheme, false);
+
+  </script>
+</body>
+
+</html>
